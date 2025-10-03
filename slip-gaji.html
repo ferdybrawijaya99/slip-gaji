@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Slip Gaji</title>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.6/dist/signature_pad.umd.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 p-6">
+  <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Form -->
+    <div class="bg-white p-6 rounded-lg shadow">
+      <h2 class="text-xl font-bold mb-4">Form Slip Gaji (Editable)</h2>
+
+      <label class="block text-sm font-medium">Nama Perusahaan</label>
+      <input id="company" value="PT. Zombie Capitalism" class="w-full border p-2 rounded mb-2" />
+
+      <label class="block text-sm font-medium">Alamat Perusahaan</label>
+      <textarea id="address" class="w-full border p-2 rounded mb-2" rows="3">Jl. Kebraon no.27 karangpilang
+Surabaya
+Jawa Timur</textarea>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block text-sm font-medium">Periode</label>
+          <input id="period" value="September 2025" class="w-full border p-2 rounded mb-2" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Karyawan</label>
+          <input id="employee" value="Indra L Brugman" class="w-full border p-2 rounded mb-2" />
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          <label class="block text-sm font-medium">Jabatan</label>
+          <input id="position" value="Operasional" class="w-full border p-2 rounded mb-2" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Status</label>
+          <input id="status" value="Karyawan Kontrak" class="w-full border p-2 rounded mb-2" />
+        </div>
+      </div>
+
+      <div class="mt-4">
+        <h3 class="font-semibold">Penerimaan (Earnings)</h3>
+        <div id="earnings"></div>
+        <button onclick="addEarning()" class="mt-2 text-sm text-blue-600">+ Tambah Penerimaan</button>
+      </div>
+
+      <div class="mt-4">
+        <h3 class="font-semibold">Pengurangan (Deductions)</h3>
+        <div id="deductions"></div>
+        <button onclick="addDeduction()" class="mt-2 text-sm text-blue-600">+ Tambah Pengurangan</button>
+      </div>
+
+      <div class="mt-4">
+        <label class="block text-sm font-medium">Nama Penerima (untuk tanda tangan)</label>
+        <input id="signatureName" value="Indra L Brugman" class="w-full border p-2 rounded mb-2" />
+      </div>
+
+      <div class="mt-4">
+        <label class="block text-sm font-medium">Editor Tanda Tangan</label>
+        <canvas id="signature-pad" class="border w-full h-40 bg-gray-50"></canvas>
+        <div class="flex gap-2 mt-2">
+          <button onclick="clearSignature()" class="px-2 py-1 bg-red-500 text-white rounded">Clear</button>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap gap-2 mt-4">
+        <button onclick="exportPDF()" class="px-4 py-2 rounded bg-blue-600 text-white">Download PDF</button>
+        <button onclick="printPreview()" class="px-4 py-2 rounded bg-green-600 text-white">Print Preview</button>
+        <button onclick="exportExcel()" class="px-4 py-2 rounded bg-yellow-600 text-white">Download Excel</button>
+      </div>
+    </div>
+
+    <!-- Preview -->
+    <div>
+      <div class="bg-white p-6 rounded-lg shadow" id="slip-preview">
+        <div class="border p-6">
+          <div class="flex justify-between items-start">
+            <div>
+              <h1 class="text-2xl font-bold">SLIP GAJI</h1>
+              <div class="mt-2 whitespace-pre-line text-sm text-gray-700" id="preview-company"></div>
+            </div>
+            <div class="text-sm text-right" id="preview-meta"></div>
+          </div>
+
+          <hr class="my-4" />
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <h4 class="font-semibold">PENERIMAAN</h4>
+              <div class="mt-2" id="preview-earnings"></div>
+            </div>
+            <div>
+              <h4 class="font-semibold">PENGURANGAN</h4>
+              <div class="mt-2" id="preview-deductions"></div>
+            </div>
+          </div>
+
+          <div class="mt-4 border-t pt-3" id="preview-totals"></div>
+
+          <div class="mt-6">
+            <div class="text-sm italic">#Terbilang :</div>
+            <div class="text-sm" id="preview-terbilang"></div>
+          </div>
+
+          <div class="mt-8 flex justify-between items-end">
+            <div class="text-center">
+              <div>Penerima</div>
+              <div class="mt-12">( tanda tangan )</div>
+              <div class="mt-2 font-semibold" id="preview-signatureName"></div>
+              <img id="preview-signature" class="mx-auto mt-2 max-h-24"/>
+            </div>
+          </div>
+
+          <div class="mt-6 text-right text-xs">Created By : FERDY BRAWIJAYA</div>
+        </div>
+      </div>
+      <div class="mt-4 text-sm text-gray-600">Preview: apa yang anda lihat disini akan diekspor/di-print.</div>
+    </div>
+  </div>
+
+<script>
+let earnings = [
+  { label: "Gaji Pokok", value: 2300000 },
+  { label: "Tunjangan Jabatan", value: 625000 },
+  { label: "Tunjangan Makan", value: 500000 },
+];
+let deductions = [
+  { label: "Iuran BPJS Kesehatan", value: 23000 },
+  { label: "Iuran BPJS Ketenagakerjaan", value: 46000 },
+  { label: "Iuran BPJS Pensiun", value: 23000 },
+];
+let signaturePad;
+let signatureData = "";
+
+function init() {
+  renderLists();
+  updatePreview();
+  const canvas = document.getElementById("signature-pad");
+  signaturePad = new SignaturePad(canvas);
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  signaturePad.onEnd = () => {
+    signatureData = signaturePad.toDataURL();
+    updatePreview();
+  };
+}
+
+function fmt(n) {
+  return Number(n||0).toLocaleString("id-ID");
+}
+
+function renderLists() {
+  const earnDiv = document.getElementById("earnings");
+  earnDiv.innerHTML = "";
+  earnings.forEach((e,i) => {
+    earnDiv.innerHTML += `<div class='flex gap-2 items-center mt-2'>
+      <input value="${e.label}" onchange="updateEarning(${i}, 'label', this.value)" class='flex-1 border p-1 rounded'/>
+      <input value="${e.value}" onchange="updateEarning(${i}, 'value', this.value)" class='w-32 border p-1 rounded text-right'/>
+      <button onclick="removeEarning(${i})" class='text-red-600'>Hapus</button>
+    </div>`;
+  });
+
+  const dedDiv = document.getElementById("deductions");
+  dedDiv.innerHTML = "";
+  deductions.forEach((d,i) => {
+    dedDiv.innerHTML += `<div class='flex gap-2 items-center mt-2'>
+      <input value="${d.label}" onchange="updateDeduction(${i}, 'label', this.value)" class='flex-1 border p-1 rounded'/>
+      <input value="${d.value}" onchange="updateDeduction(${i}, 'value', this.value)" class='w-32 border p-1 rounded text-right'/>
+      <button onclick="removeDeduction(${i})" class='text-red-600'>Hapus</button>
+    </div>`;
+  });
+
+  updatePreview();
+}
+
+function updateEarning(i,field,val){
+  earnings[i][field] = field=="value"?Number(val)||0:val;
+  updatePreview();
+}
+function updateDeduction(i,field,val){
+  deductions[i][field] = field=="value"?Number(val)||0:val;
+  updatePreview();
+}
+function removeEarning(i){earnings.splice(i,1);renderLists();}
+function removeDeduction(i){deductions.splice(i,1);renderLists();}
+function addEarning(){earnings.push({label:"Item Baru",value:0});renderLists();}
+function addDeduction(){deductions.push({label:"Item Potongan",value:0});renderLists();}
+
+function updatePreview(){
+  const company=document.getElementById("company").value;
+  const address=document.getElementById("address").value;
+  const period=document.getElementById("period").value;
+  const employee=document.getElementById("employee").value;
+  const position=document.getElementById("position").value;
+  const status=document.getElementById("status").value;
+  const signatureName=document.getElementById("signatureName").value;
+
+  document.getElementById("preview-company").innerText=`${company}
+${address}`;
+  document.getElementById("preview-meta").innerHTML=`<div><strong>Periode :</strong> ${period}</div>
+    <div><strong>Karyawan :</strong> ${employee}</div>
+    <div><strong>Jabatan :</strong> ${position}</div>
+    <div><strong>Status :</strong> ${status}</div>`;
+
+  let earnHTML="",dedHTML="",totalBruto=0,totalPot=0;
+  earnings.forEach(e=>{earnHTML+=`<div class='flex justify-between'><div>${e.label}</div><div>${fmt(e.value)}</div></div>`;totalBruto+=Number(e.value||0)});
+  deductions.forEach(d=>{dedHTML+=`<div class='flex justify-between'><div>${d.label}</div><div>${fmt(d.value)}</div></div>`;totalPot+=Number(d.value||0)});
+  document.getElementById("preview-earnings").innerHTML=earnHTML;
+  document.getElementById("preview-deductions").innerHTML=dedHTML;
+
+  const net=totalBruto-totalPot;
+  document.getElementById("preview-totals").innerHTML=`
+    <div class='flex justify-between'><div class='font-semibold'>Total Penghasilan Bruto</div><div class='font-semibold'>${fmt(totalBruto)}</div></div>
+    <div class='flex justify-between mt-1'><div class='font-semibold'>Total Pengurangan</div><div class='font-semibold'>${fmt(totalPot)}</div></div>
+    <div class='flex justify-between mt-2 text-xl font-bold'><div>TOTAL DITERIMA KARYAWAN</div><div>${fmt(net)}</div></div>`;
+
+  document.getElementById("preview-terbilang").innerText=`${fmt(net)} Rupiah`;
+  document.getElementById("preview-signatureName").innerText=signatureName;
+  document.getElementById("preview-signature").src=signatureData;
+}
+
+function clearSignature(){
+  signaturePad.clear();
+  signatureData="";
+  updatePreview();
+}
+
+async function exportPDF(){
+  const { jsPDF } = window.jspdf;
+  const element=document.getElementById("slip-preview");
+  const canvas=await html2canvas(element,{scale:2});
+  const data=canvas.toDataURL("image/png");
+  const pdf=new jsPDF("p","mm","a4");
+  const imgProps=pdf.getImageProperties(data);
+  const pdfWidth=pdf.internal.pageSize.getWidth();
+  const pdfHeight=(imgProps.height*pdfWidth)/imgProps.width;
+  pdf.addImage(data,"PNG",0,0,pdfWidth,pdfHeight);
+  pdf.save("slip_gaji.pdf");
+}
+
+function printPreview(){
+  const printContents=document.getElementById("slip-preview").innerHTML;
+  const newWin=window.open("","Print-Window");
+  newWin.document.open();
+  newWin.document.write(`
+    <html>
+    <head><title>Slip Gaji Preview</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>body{padding:20px;font-family:Inter, system-ui, Arial;}</style></head>
+    <body onload="window.print();window.close()">${printContents}</body></html>`);
+  newWin.document.close();
+}
+
+function exportExcel(){
+  const wb=XLSX.utils.book_new();
+  const data=[["Penerimaan"]];
+  earnings.forEach(e=>data.push([e.label,e.value]));
+  data.push([]);
+  data.push(["Pengurangan"]);
+  deductions.forEach(d=>data.push([d.label,d.value]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(data),"SlipGaji");
+  XLSX.writeFile(wb,"slip_gaji.xlsx");
+}
+
+window.onload=init;
+</script>
+</body>
+</html>
